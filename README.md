@@ -47,7 +47,7 @@ Only local `.xlsx` files. There is no SharePoint or URL input.
 ### Install
 
 ```
-/plugin marketplace add <your-org>/excel2md
+/plugin marketplace add SpringHuyNguyen/excel2md
 /plugin install excel2md@excel2md
 ```
 
@@ -190,7 +190,7 @@ Chỉ nhận file `.xlsx` trên máy. Không có đầu vào SharePoint hay URL.
 ### Cài đặt
 
 ```
-/plugin marketplace add <your-org>/excel2md
+/plugin marketplace add SpringHuyNguyen/excel2md
 /plugin install excel2md@excel2md
 ```
 
