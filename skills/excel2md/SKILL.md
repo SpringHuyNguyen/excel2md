@@ -95,7 +95,13 @@ Therefore the sources have strictly separated roles:
     - The command MUST contain `--file <path>`. If it is missing, report `provide --file <path.xlsx>` and STOP. If the path does not exist or is not an `.xlsx` file, report that and STOP.
     - Strip the standalone flags from the end of the argument list: if `-vision-all` is present set `VISION_ALL=true`, if `-test` is present set `KEEP_ALL=true`. Remove both before parsing `output_folder_name`. They are NOT part of the folder name.
     - `SKILL_DIR` is already set from Step 0.
-    - Determine `OUTPUT_DIR`: the `output_folder_name` argument, as `./<output_folder_name>` in the current working directory, created if needed. If absent, `OUTPUT_DIR` is the current working directory.
+    - Determine `OUTPUT_DIR`: the `output_folder_name` argument, as `./<output_folder_name>` in the current working directory, created if needed.
+
+        **When `output_folder_name` is absent, ASK the user where to put the results before going any further.** Use the `AskUserQuestion` tool. A conversion writes one Markdown file per sheet plus an `images/` folder, so landing that in whatever directory the user happens to be in — often the root of a repository — leaves a mess they then have to clean up by hand. Offer:
+        - a new folder named after the workbook, sanitised the same way the scripts sanitise sheet names — recommend this one;
+        - the current working directory, for when they really do want the files loose where they are.
+
+        The user can always type a different name instead. Whatever comes back becomes `output_folder_name`; create the folder if it does not exist. Do not skip this question and do not guess — the answer decides where every file in this run ends up.
     - Set `EXCEL_FILE` to the `--file` value.
     - Set `EXCEL_BASENAME` to the Excel filename without extension.
 

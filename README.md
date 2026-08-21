@@ -103,9 +103,12 @@ export EXCEL2MD_SOFFICE=/usr/bin/soffice
 | | |
 | --- | --- |
 | `--file <path.xlsx>` | Required. The workbook to convert |
-| `output_folder` | Where to put the results, relative to where you are. Defaults to the current folder |
+| `output_folder` | Where to put the results, relative to where you are. Leave it out and the skill asks you |
 | `-vision-all` | Render an image of every sheet, not just the ones with drawings |
 | `-test` | Keep the intermediate files instead of cleaning them up |
+
+If you leave `output_folder` out, the skill asks where to put the results rather than scattering
+them into whatever directory you happen to be in. It suggests a folder named after the workbook.
 
 For example:
 
@@ -245,9 +248,12 @@ export EXCEL2MD_SOFFICE=/usr/bin/soffice
 | | |
 | --- | --- |
 | `--file <path.xlsx>` | Bắt buộc. File workbook cần chuyển |
-| `output_folder` | Nơi để kết quả, tính từ chỗ bạn đang đứng. Bỏ trống thì dùng thư mục hiện tại |
+| `output_folder` | Nơi để kết quả, tính từ chỗ bạn đang đứng. Bỏ trống thì skill sẽ hỏi bạn |
 | `-vision-all` | Render ảnh cho mọi sheet, không chỉ sheet có hình vẽ |
 | `-test` | Giữ lại file trung gian thay vì dọn đi |
+
+Nếu bạn bỏ trống `output_folder`, skill sẽ hỏi bạn muốn để kết quả ở đâu thay vì rải file vào
+thư mục bạn tình cờ đang đứng. Nó gợi ý sẵn một thư mục đặt theo tên workbook.
 
 Ví dụ:
 
