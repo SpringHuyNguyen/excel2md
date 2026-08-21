@@ -1,7 +1,7 @@
 # excel2md
 
-A Claude Code plugin that converts a local Excel design document into Markdown — one file per sheet.
-Excel の設計書をシートごとの Markdown に変換する Claude Code プラグインです。
+Turn an Excel design document into Markdown — one file per sheet.
+Chuyển tài liệu thiết kế Excel thành Markdown — mỗi sheet một file.
 
 ---
 
@@ -9,38 +9,40 @@ Excel の設計書をシートごとの Markdown に変換する Claude Code プ
 
 ### What it does
 
-Point it at an `.xlsx` design document and it produces one Markdown file per visible sheet.
+Give it an `.xlsx` design document and you get back one Markdown file per visible sheet.
 
-The workbook is decomposed into four sources, each with a strictly separated role:
+The hard part of this job is not reading Excel — it is not corrupting the text on the way out.
+So the workbook is pulled apart into four sources, and each one is trusted for exactly one thing:
 
-| Source | Authority over |
+| Source | What it decides |
 | --- | --- |
-| Per-sheet text, read straight from the workbook | Every character in the output |
-| Rendered sheet PNG | Table structure, merges, diagrams, image placement |
-| Rough table frame from a PDF export | Row/column boundaries only |
-| Struck-through text | Text to delete from the output |
+| Sheet text, read straight from the workbook | Every character in the output |
+| A rendered image of the sheet | Table structure, merged cells, diagrams, where pictures sit |
+| A rough table frame from a PDF export | Row and column boundaries, nothing else |
+| Struck-through text | What to delete |
 
-Characters always come from the workbook itself, never from the PDF or the image. This matters
-for mixed Japanese/Vietnamese documents, where a PDF export splits Vietnamese tone marks into
-separate glyphs and drops characters at font fallbacks.
+Characters always come from the workbook itself — never from the PDF, never from the image. That
+rule exists because a PDF export mangles Vietnamese: it splits tone marks into separate glyphs, so
+`Lịch sử chỉnh sửa` comes back as `L ch sị ử ch nh sỉ ửa`. Japanese usually survives, but "usually"
+is not good enough, so the rule holds for every language.
 
-Sheets are routed to a formatting rule by name — cover, change history, table definition, item
-specification, screen transition, requirements and so on — so a Japanese `テーブル定義` sheet and a
-Vietnamese `ĐN table` sheet reach the same rule.
+Sheets are matched to a formatting rule by name, after stripping accents, numbering and decorative
+symbols. A Japanese `テーブル定義` sheet, a Vietnamese `ĐN table` sheet and an English
+`Table Definition` sheet all land on the same rule.
 
-Shape-based diagrams are rebuilt as Mermaid flowcharts, and embedded pictures are extracted and
+Diagrams drawn with shapes come back as Mermaid flowcharts. Embedded pictures are pulled out and
 linked from the Markdown.
 
-### Requirements
+### What you need
 
-| Requirement | Notes |
+| | |
 | --- | --- |
-| Claude Code | Plugin support |
-| Python 3.10+ | `list[str]` type hints are used |
-| LibreOffice | Native app. Used headless to export sheets to PDF |
-| Python packages | See `skills/excel2md/requirements.txt` |
+| Claude Code | With plugin support |
+| Python 3.10+ | |
+| LibreOffice | Used headlessly to turn sheets into PDFs. The skill offers to install it |
+| Four Python packages | Listed in `skills/excel2md/requirements.txt`. The skill installs them |
 
-`--url` / SharePoint input is **not** part of this plugin. Only local `.xlsx` files are supported.
+Only local `.xlsx` files. There is no SharePoint or URL input.
 
 ### Install
 
@@ -49,41 +51,39 @@ linked from the Markdown.
 /plugin install excel2md@excel2md
 ```
 
-**Dependencies install themselves.** Installing a plugin never runs `pip` or a package manager,
-so the skill checks what it needs before every run and offers to fill the gaps.
+That is the whole install. The dependencies sort themselves out on first use.
 
-**LibreOffice.** If it is missing, the skill proposes the right command for your machine —
-`winget` on Windows, `brew` on macOS, `apt-get` / `dnf` / `pacman` / `zypper` on Linux — and asks
-before running it. This is a system-wide install of roughly 350 MB that prompts for
-administrator rights, so it never happens unprompted. Decline and you get the manual download
-link instead. If no package manager is available, you get the link straight away.
+Installing a plugin never runs `pip` or a package manager, so the skill checks what it needs
+before every run and fills in what is missing.
 
-If the administrator prompt cannot be answered from the terminal, run the command yourself in an
-elevated shell and re-run the skill:
+**LibreOffice.** If it is not there, the skill picks the right command for your machine — `winget`
+on Windows, `brew` on macOS, `apt-get` / `dnf` / `pacman` / `zypper` on Linux — and asks you first.
+It is a 350 MB system-wide install that wants administrator rights, so it never happens behind your
+back. Say no and you get the download link instead.
 
-```
-winget install --id TheDocumentFoundation.LibreOffice -e --accept-package-agreements --accept-source-agreements
-```
+Once it is installed on Windows, the skill adds LibreOffice to your user `PATH` so `soffice` works
+in your own terminals too. Your existing terminals keep their old `PATH` until you open a new one.
 
-**Python packages.** These install without a confirmation step, because they go into the
-interpreter you are already running rather than changing the system. The skill reports which
-packages are missing and installs them with that exact interpreter — Claude Code still asks you
-to approve the command. If any install fails, the skill stops and shows you the command, the
-tool's real output, and the likely cause; it never runs the pipeline half-equipped.
+**Python packages.** These go in without asking, because they land in the interpreter you are
+already running rather than changing anything system-wide. Claude Code still shows you the command
+before it runs.
 
-To install them ahead of time instead:
+If anything fails, the skill stops and shows you what it ran, what came back, and what to try. It
+never starts a conversion half-equipped.
+
+Want to do it yourself instead:
 
 ```
 pip install -r <plugin-dir>/skills/excel2md/requirements.txt
 ```
 
-To check your setup at any point:
+Want to check your setup at any point:
 
 ```
 python <plugin-dir>/skills/excel2md/preflight.py
 ```
 
-If `soffice` is not on your `PATH`, point `EXCEL2MD_SOFFICE` at the executable:
+If LibreOffice ends up somewhere unusual, point the skill straight at it:
 
 ```
 # Windows
@@ -94,145 +94,138 @@ export EXCEL2MD_SOFFICE=/Applications/LibreOffice.app/Contents/MacOS/soffice
 export EXCEL2MD_SOFFICE=/usr/bin/soffice
 ```
 
-### Usage
+### Using it
 
 ```
-/excel2md:excel2md --file <path.xlsx> [output_folder_name] [-vision-all] [-test]
+/excel2md:excel2md --file <path.xlsx> [output_folder] [-vision-all] [-test]
 ```
 
-| Argument | Meaning |
+| | |
 | --- | --- |
-| `--file <path.xlsx>` | Required. The local workbook to convert |
-| `output_folder_name` | Optional. Output folder, relative to the current directory. Defaults to the current directory |
-| `-vision-all` | Optional. Render a PNG for every sheet, not only sheets containing drawings |
-| `-test` | Optional. Keep all intermediate folders (`raw_pdf/`, `raw_md/`, `png/`, `text/`) |
+| `--file <path.xlsx>` | Required. The workbook to convert |
+| `output_folder` | Where to put the results, relative to where you are. Defaults to the current folder |
+| `-vision-all` | Render an image of every sheet, not just the ones with drawings |
+| `-test` | Keep the intermediate files instead of cleaning them up |
 
-Example:
+For example:
 
 ```
 /excel2md:excel2md --file "C:\docs\design.xlsx" out
 ```
 
-Output, by default:
+leaves you with:
 
 ```
 out/
 ├── 001_design_cover.md
 ├── 002_design_history.md
 ├── ...
-└── images/           ← embedded pictures, linked from the Markdown
+└── images/           ← pictures from the workbook, linked from the Markdown
 ```
 
-Your source `.xlsx` is never modified or deleted.
+Your `.xlsx` is never touched.
 
-### Troubleshooting
+### When something goes wrong
 
-Run `python <plugin-dir>/skills/excel2md/preflight.py` first — it names what is missing and
-prints the exact command to fix it.
+Start here — it tells you what is missing and the exact command that fixes it:
 
-| Symptom | Cause |
+```
+python <plugin-dir>/skills/excel2md/preflight.py
+```
+
+| What you see | What it means |
 | --- | --- |
-| `NOT READY: LibreOffice was not found` | Not installed, or not on `PATH`. Accept the offered install, or set `EXCEL2MD_SOFFICE` |
-| Install command hangs, or fails with an elevation error | The administrator prompt could not be answered from the terminal. Run it in an elevated shell |
-| `No package found matching input criteria` | Stale package index. Run `winget source update`, or download manually |
-| Still `NOT READY` after a successful install | LibreOffice landed somewhere non-standard. Set `EXCEL2MD_SOFFICE` |
-| `NOT READY: n Python package(s) missing` | Run the command preflight prints. It targets the right interpreter |
-| pip fails with `Permission denied` | The interpreter lives in a system location. Retry with `--user`, or use a virtual environment |
-| pip fails with `externally-managed-environment` | A distro-managed Python. Use a virtual environment |
-| Packages installed but still `ModuleNotFoundError` | They went to a different interpreter. Compare the path preflight prints with the one you used |
-| A sheet produced no PDF frame | Harmless. That sheet falls back to text plus rendered PNG for structure |
-| Hidden sheets are missing | Intended. Hidden sheets are skipped |
-
-### Development
-
-```
-cd skills/excel2md
-pip install -r requirements.txt pytest
-python -m pytest tests/
-```
+| `NOT READY: LibreOffice was not found` | Not installed, or the skill cannot see it. Accept the install it offers, or set `EXCEL2MD_SOFFICE` |
+| The install hangs, or complains about permissions | The administrator prompt could not be answered from the terminal. Run the command yourself in an elevated shell |
+| `No package found matching input criteria` | Your package index is stale. Try `winget source update`, or download LibreOffice manually |
+| Still `NOT READY` after a clean install | LibreOffice landed somewhere unusual. Set `EXCEL2MD_SOFFICE` |
+| `NOT READY: n Python package(s) missing` | Run the command preflight prints — it targets the right interpreter |
+| pip says `Permission denied` | Your Python lives in a system folder. Add `--user`, or use a virtual environment |
+| pip says `externally-managed-environment` | A Linux distro Python. Use a virtual environment |
+| Installed fine, still `ModuleNotFoundError` | The packages went to a different Python. Compare the path preflight prints against the one you used |
+| A sheet has no PDF frame | Nothing to worry about. That sheet uses its text and rendered image instead |
+| A sheet is missing entirely | Hidden sheets are skipped on purpose |
 
 ---
 
-## 日本語
+## Tiếng Việt
 
-### 概要
+### Nó làm gì
 
-ローカルの `.xlsx` 設計書を指定すると、表示されているシートごとに Markdown ファイルを 1 つ生成します。
+Đưa vào một file thiết kế `.xlsx`, bạn nhận lại mỗi sheet hiển thị một file Markdown.
 
-ワークブックは 4 つのソースに分解され、それぞれの役割は厳密に分離されています。
+Phần khó không nằm ở việc đọc Excel, mà ở việc không làm hỏng chữ trên đường ra. Vì vậy workbook
+được tách thành bốn nguồn, mỗi nguồn chỉ được tin đúng một việc:
 
-| ソース | 権限を持つ範囲 |
+| Nguồn | Quyết định điều gì |
 | --- | --- |
-| ワークブックから直接読んだシート別テキスト | 出力される全ての文字 |
-| レンダリングされたシート PNG | 表構造、セル結合、図、画像の配置 |
-| PDF エクスポートから得た大まかな表枠 | 行・列の境界のみ |
-| 取り消し線付きテキスト | 出力から削除する文字列 |
+| Text đọc thẳng từ workbook | Mọi ký tự trong kết quả |
+| Ảnh render của sheet | Cấu trúc bảng, ô gộp, sơ đồ, vị trí hình |
+| Khung bảng thô từ bản PDF | Ranh giới hàng và cột, chỉ vậy thôi |
+| Chữ gạch ngang | Phần cần xoá |
 
-文字は常にワークブック自体から取得し、PDF や画像からは決して取得しません。日本語とベトナム語が
-混在する文書では、PDF エクスポートがベトナム語の声調記号を別のグリフに分割したり、フォント
-フォールバック箇所で文字を落としたりするため、この区別が重要になります。
+Ký tự luôn lấy từ chính workbook, không bao giờ từ PDF hay từ ảnh. Quy tắc này có vì bản PDF phá
+tiếng Việt: nó tách dấu thanh thành glyph riêng, nên `Lịch sử chỉnh sửa` quay ra thành
+`L ch sị ử ch nh sỉ ửa`. Tiếng Nhật thường không sao, nhưng "thường" thì chưa đủ, nên quy tắc áp
+dụng cho mọi ngôn ngữ.
 
-シートは名前によってフォーマット規則へ振り分けられます（表紙、変更履歴、テーブル定義、項目仕様、
-画面遷移、要件定義など）。日本語の `テーブル定義` シートとベトナム語の `ĐN table` シートは
-同じ規則に到達します。
+Sheet được ghép vào quy tắc định dạng theo tên, sau khi bỏ dấu, bỏ số thứ tự và ký hiệu trang trí.
+Sheet `テーブル定義` tiếng Nhật, `ĐN table` tiếng Việt và `Table Definition` tiếng Anh đều rơi vào
+cùng một quy tắc.
 
-図形で描かれた図は Mermaid のフローチャートとして再構築され、埋め込み画像は抽出されて
-Markdown からリンクされます。
+Sơ đồ vẽ bằng shape được dựng lại thành Mermaid flowchart. Hình nhúng được trích ra và link từ
+Markdown.
 
-### 必要なもの
+### Cần những gì
 
-| 項目 | 備考 |
+| | |
 | --- | --- |
-| Claude Code | プラグイン対応版 |
-| Python 3.10 以上 | `list[str]` 型ヒントを使用 |
-| LibreOffice | ネイティブアプリ。ヘッドレスでシートを PDF に変換 |
-| Python パッケージ | `skills/excel2md/requirements.txt` を参照 |
+| Claude Code | Bản có hỗ trợ plugin |
+| Python 3.10 trở lên | |
+| LibreOffice | Chạy ngầm để chuyển sheet thành PDF. Skill sẽ hỏi để cài giúp |
+| Bốn package Python | Ghi trong `skills/excel2md/requirements.txt`. Skill tự cài |
 
-`--url` / SharePoint 入力はこのプラグインには**含まれません**。ローカルの `.xlsx` のみ対応します。
+Chỉ nhận file `.xlsx` trên máy. Không có đầu vào SharePoint hay URL.
 
-### インストール
+### Cài đặt
 
 ```
 /plugin marketplace add <your-org>/excel2md
 /plugin install excel2md@excel2md
 ```
 
-**依存関係は自動でインストールされます。** プラグインのインストール時に `pip` やパッケージ
-マネージャーが実行されることはないため、スキル側が実行のたびに必要なものを確認し、不足分の
-導入を提案します。
+Cài đặt chỉ có vậy. Phần phụ thuộc tự lo lấy trong lần dùng đầu tiên.
 
-**LibreOffice。** 見つからない場合、環境に応じたコマンドを提示します（Windows は `winget`、
-macOS は `brew`、Linux は `apt-get` / `dnf` / `pacman` / `zypper`）。実行前に必ず確認を求めます。
-約 350 MB のシステム全体へのインストールであり管理者権限を要求するため、無断で実行されることは
-ありません。断った場合は手動ダウンロードのリンクを提示します。対応するパッケージマネージャーが
-無い場合も同様にリンクを提示します。
+Việc cài plugin không bao giờ chạy `pip` hay package manager, nên skill tự kiểm tra trước mỗi lần
+chạy và bù vào những gì còn thiếu.
 
-管理者権限のプロンプトにターミナルから応答できない場合は、昇格したシェルで次を実行してから
-スキルを再実行してください。
+**LibreOffice.** Nếu chưa có, skill chọn đúng lệnh cho máy bạn — `winget` trên Windows, `brew` trên
+macOS, `apt-get` / `dnf` / `pacman` / `zypper` trên Linux — và hỏi bạn trước. Đây là bản cài 350 MB
+cho toàn máy và cần quyền admin, nên nó không bao giờ tự chạy sau lưng bạn. Từ chối thì bạn nhận
+link tải về.
 
-```
-winget install --id TheDocumentFoundation.LibreOffice -e --accept-package-agreements --accept-source-agreements
-```
+Trên Windows, sau khi cài xong skill thêm LibreOffice vào `PATH` của người dùng để bạn gõ `soffice`
+được trong terminal của mình. Các terminal đang mở vẫn giữ `PATH` cũ cho tới khi bạn mở cái mới.
 
-**Python パッケージ。** こちらは確認なしでインストールされます。システムを変更するのではなく、
-すでに動作しているインタプリタに導入されるためです。不足しているパッケージを報告し、その
-インタプリタを対象にインストールします（コマンドの承認は Claude Code が求めます）。
-インストールが失敗した場合は処理を中断し、実行したコマンド、ツールの実際の出力、想定される
-原因を提示します。依存関係が揃わないままパイプラインを実行することはありません。
+**Package Python.** Phần này cài không hỏi, vì chúng vào đúng interpreter bạn đang chạy chứ không
+đụng gì tới hệ thống. Claude Code vẫn cho bạn xem lệnh trước khi chạy.
 
-事前にインストールしておく場合:
+Nếu có gì đó hỏng, skill dừng lại và cho bạn xem nó đã chạy lệnh gì, kết quả trả về ra sao, và nên
+thử gì tiếp. Nó không bao giờ bắt đầu convert khi còn thiếu đồ.
+
+Muốn tự làm thay vì để skill lo:
 
 ```
 pip install -r <plugin-dir>/skills/excel2md/requirements.txt
 ```
 
-環境を確認する場合:
+Muốn kiểm tra môi trường bất cứ lúc nào:
 
 ```
 python <plugin-dir>/skills/excel2md/preflight.py
 ```
 
-`soffice` が `PATH` に無い場合は、`EXCEL2MD_SOFFICE` に実行ファイルのパスを指定します。
+Nếu LibreOffice nằm ở chỗ lạ, trỏ thẳng skill vào đó:
 
 ```
 # Windows
@@ -243,65 +236,60 @@ export EXCEL2MD_SOFFICE=/Applications/LibreOffice.app/Contents/MacOS/soffice
 export EXCEL2MD_SOFFICE=/usr/bin/soffice
 ```
 
-### 使い方
+### Cách dùng
 
 ```
-/excel2md:excel2md --file <path.xlsx> [output_folder_name] [-vision-all] [-test]
+/excel2md:excel2md --file <path.xlsx> [output_folder] [-vision-all] [-test]
 ```
 
-| 引数 | 意味 |
+| | |
 | --- | --- |
-| `--file <path.xlsx>` | 必須。変換するローカルのワークブック |
-| `output_folder_name` | 任意。カレントディレクトリからの相対出力フォルダ。省略時はカレントディレクトリ |
-| `-vision-all` | 任意。図形の有無に関わらず全シートを PNG 化する |
-| `-test` | 任意。中間フォルダ（`raw_pdf/`、`raw_md/`、`png/`、`text/`）を全て残す |
+| `--file <path.xlsx>` | Bắt buộc. File workbook cần chuyển |
+| `output_folder` | Nơi để kết quả, tính từ chỗ bạn đang đứng. Bỏ trống thì dùng thư mục hiện tại |
+| `-vision-all` | Render ảnh cho mọi sheet, không chỉ sheet có hình vẽ |
+| `-test` | Giữ lại file trung gian thay vì dọn đi |
 
-例:
+Ví dụ:
 
 ```
 /excel2md:excel2md --file "C:\docs\design.xlsx" out
 ```
 
-既定の出力:
+cho ra:
 
 ```
 out/
 ├── 001_design_cover.md
 ├── 002_design_history.md
 ├── ...
-└── images/           ← 埋め込み画像。Markdown からリンクされる
+└── images/           ← hình lấy từ workbook, được link trong Markdown
 ```
 
-元の `.xlsx` は変更も削除もされません。
+File `.xlsx` của bạn không bị đụng tới.
 
-### トラブルシューティング
+### Khi có trục trặc
 
-まず `python <plugin-dir>/skills/excel2md/preflight.py` を実行してください。不足しているものと、
-それを解消するコマンドをそのまま出力します。
+Bắt đầu từ đây — nó nói cho bạn biết thiếu gì và lệnh nào sửa được:
 
-| 症状 | 原因 |
+```
+python <plugin-dir>/skills/excel2md/preflight.py
+```
+
+| Bạn thấy gì | Nghĩa là gì |
 | --- | --- |
-| `NOT READY: LibreOffice was not found` | 未インストール、または `PATH` に無い。提示されたインストールを承認するか `EXCEL2MD_SOFFICE` を設定 |
-| インストールコマンドが停止する、権限エラーで失敗する | 管理者プロンプトにターミナルから応答できていません。昇格したシェルで実行してください |
-| `No package found matching input criteria` | パッケージ索引が古い状態です。`winget source update` を実行するか手動でダウンロード |
-| インストール成功後も `NOT READY` | LibreOffice が非標準の場所にあります。`EXCEL2MD_SOFFICE` を設定 |
-| `NOT READY: n Python package(s) missing` | preflight が出力したコマンドを実行。正しいインタプリタが対象になります |
-| pip が `Permission denied` で失敗 | インタプリタがシステム領域にあります。`--user` を付けるか仮想環境を使用 |
-| pip が `externally-managed-environment` で失敗 | ディストリビューション管理下の Python です。仮想環境を使用 |
-| インストール済みなのに `ModuleNotFoundError` | 別のインタプリタに入っています。preflight が出力したパスと照合してください |
-| あるシートで PDF 表枠が作られない | 問題ありません。そのシートはテキストと PNG のみで構造を判断します |
-| 非表示シートが出力されない | 仕様です。非表示シートはスキップされます |
-
-### 開発
-
-```
-cd skills/excel2md
-pip install -r requirements.txt pytest
-python -m pytest tests/
-```
+| `NOT READY: LibreOffice was not found` | Chưa cài, hoặc skill không thấy. Đồng ý cho nó cài, hoặc đặt `EXCEL2MD_SOFFICE` |
+| Lệnh cài treo, hoặc báo lỗi quyền | Cửa sổ xin quyền admin không trả lời được từ terminal. Tự chạy lệnh đó trong shell đã nâng quyền |
+| `No package found matching input criteria` | Danh mục package đã cũ. Thử `winget source update`, hoặc tải LibreOffice thủ công |
+| Cài xong vẫn `NOT READY` | LibreOffice nằm ở chỗ lạ. Đặt `EXCEL2MD_SOFFICE` |
+| `NOT READY: n Python package(s) missing` | Chạy lệnh preflight in ra — nó nhắm đúng interpreter |
+| pip báo `Permission denied` | Python của bạn nằm trong thư mục hệ thống. Thêm `--user`, hoặc dùng virtual environment |
+| pip báo `externally-managed-environment` | Python do distro Linux quản lý. Dùng virtual environment |
+| Cài xong vẫn `ModuleNotFoundError` | Package vào nhầm Python khác. So đường dẫn preflight in ra với cái bạn đã dùng |
+| Một sheet không có khung PDF | Không sao. Sheet đó dùng text và ảnh render thay thế |
+| Thiếu hẳn một sheet | Sheet ẩn bị bỏ qua, đúng như thiết kế |
 
 ---
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. Xem [LICENSE](LICENSE).

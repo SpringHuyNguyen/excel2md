@@ -78,6 +78,14 @@ Therefore the sources have strictly separated roles:
 
     After the install command finishes, re-run `preflight.py` as a NEW process. It re-detects LibreOffice at its default location, so a `PATH` that has not refreshed in the current shell does not matter. Continue only if it now exits 0.
 
+    Then put LibreOffice on the user's `PATH`, so `soffice` works in their own terminals too:
+
+    ```bash
+    python "<SKILL_DIR>\add_to_path.py"
+    ```
+
+    This writes only to the current user's environment, never the machine's, so it needs no administrator rights. It is a convenience, not a requirement — the pipeline finds LibreOffice without it. Report the one line it prints. If it fails, say so and carry on to Step 1 anyway; a `PATH` that was not updated does not stop the conversion.
+
     **If the install command fails**, apply the same reporting discipline as for pip — command, verbatim output, likely cause, manual fallback, then STOP. The causes worth naming here:
     - the command hangs, or fails with an elevation or `0x800...` error → the administrator prompt could not be answered from this shell. Ask the user to run the command themselves in an elevated terminal, then re-run the skill.
     - `No package found matching input criteria` → the package manager's source index is stale. Suggest `winget source update` (or the equivalent) or the manual download.

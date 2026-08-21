@@ -19,8 +19,11 @@ import os
 import shutil
 import sys
 
-# Fix Vietnamese characters on Windows console
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+# Fix Vietnamese characters on Windows console. Guarded because these modules
+# import one another: wrapping an already-wrapped stdout drops the first
+# wrapper, and collecting it closes the buffer both were writing to.
+if hasattr(sys.stdout, "buffer") and (sys.stdout.encoding or "").lower().replace("-", "") != "utf8":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 MIN_PYTHON = (3, 10)
 

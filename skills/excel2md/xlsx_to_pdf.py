@@ -5,16 +5,17 @@ Usage:
     python xlsx_to_pdf.py input.xlsx output_dir
 """
 import io
-sys_stdout_utf8 = None  # set after sys import
-
 import os
 import re
 import shutil
 import subprocess
 import sys
 
-# Fix Vietnamese characters on Windows console
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+# Fix Vietnamese characters on Windows console. Guarded because these modules
+# import one another: wrapping an already-wrapped stdout drops the first
+# wrapper, and collecting it closes the buffer both were writing to.
+if hasattr(sys.stdout, "buffer") and (sys.stdout.encoding or "").lower().replace("-", "") != "utf8":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 from pypdf import PdfReader, PdfWriter
 
