@@ -49,13 +49,26 @@ linked from the Markdown.
 /plugin install excel2md@excel2md
 ```
 
-Then install the Python dependencies once:
+**Install LibreOffice** from <https://www.libreoffice.org/download/>. This is the one step you
+must do yourself — it is a native application, not a Python package.
+
+**The Python packages install themselves.** Installing a plugin never runs `pip`, so the skill
+checks its own dependencies before every run. The first time you use it, it reports which
+packages are missing and installs them with the interpreter it is actually running under (Claude
+Code will ask you to approve that command). If the install fails, it stops and shows you the
+command, pip's real output, and the likely cause — it never runs the pipeline half-equipped.
+
+To install them ahead of time instead:
 
 ```
 pip install -r <plugin-dir>/skills/excel2md/requirements.txt
 ```
 
-And install LibreOffice from <https://www.libreoffice.org/download/>.
+To check your setup at any point:
+
+```
+python <plugin-dir>/skills/excel2md/preflight.py
+```
 
 If `soffice` is not on your `PATH`, point `EXCEL2MD_SOFFICE` at the executable:
 
@@ -101,10 +114,16 @@ Your source `.xlsx` is never modified or deleted.
 
 ### Troubleshooting
 
+Run `python <plugin-dir>/skills/excel2md/preflight.py` first — it names what is missing and
+prints the exact command to fix it.
+
 | Symptom | Cause |
 | --- | --- |
-| `ERROR: LibreOffice not found` | LibreOffice is not installed, or not on `PATH`. Set `EXCEL2MD_SOFFICE` |
-| `ModuleNotFoundError` | Run `pip install -r skills/excel2md/requirements.txt` |
+| `NOT READY: LibreOffice was not found` | LibreOffice is not installed, or not on `PATH`. Set `EXCEL2MD_SOFFICE` |
+| `NOT READY: n Python package(s) missing` | Run the command preflight prints. It targets the right interpreter |
+| pip fails with `Permission denied` | The interpreter lives in a system location. Retry with `--user`, or use a virtual environment |
+| pip fails with `externally-managed-environment` | A distro-managed Python. Use a virtual environment |
+| Packages installed but still `ModuleNotFoundError` | They went to a different interpreter. Compare the path preflight prints with the one you used |
 | A sheet produced no PDF frame | Harmless. That sheet falls back to text plus rendered PNG for structure |
 | Hidden sheets are missing | Intended. Hidden sheets are skipped |
 
@@ -162,13 +181,27 @@ Markdown からリンクされます。
 /plugin install excel2md@excel2md
 ```
 
-続いて Python の依存関係を一度だけインストールします。
+**LibreOffice** は <https://www.libreoffice.org/download/> から導入してください。手動で行う必要が
+あるのはこの 1 ステップだけです。Python パッケージではなくネイティブアプリのためです。
+
+**Python パッケージは自動でインストールされます。** プラグインのインストール時に `pip` が実行される
+ことはないため、スキル側が実行のたびに自身の依存関係を確認します。初回利用時に不足している
+パッケージを報告し、実際に動作している Python インタプリタを対象にインストールします
+（そのコマンドの承認は Claude Code が求めます）。インストールが失敗した場合は処理を中断し、
+実行したコマンド、pip の実際の出力、想定される原因を提示します。依存関係が揃わないまま
+パイプラインを実行することはありません。
+
+事前にインストールしておく場合:
 
 ```
 pip install -r <plugin-dir>/skills/excel2md/requirements.txt
 ```
 
-LibreOffice は <https://www.libreoffice.org/download/> から導入してください。
+環境を確認する場合:
+
+```
+python <plugin-dir>/skills/excel2md/preflight.py
+```
 
 `soffice` が `PATH` に無い場合は、`EXCEL2MD_SOFFICE` に実行ファイルのパスを指定します。
 
@@ -214,10 +247,16 @@ out/
 
 ### トラブルシューティング
 
+まず `python <plugin-dir>/skills/excel2md/preflight.py` を実行してください。不足しているものと、
+それを解消するコマンドをそのまま出力します。
+
 | 症状 | 原因 |
 | --- | --- |
-| `ERROR: LibreOffice not found` | LibreOffice 未インストール、または `PATH` に無い。`EXCEL2MD_SOFFICE` を設定 |
-| `ModuleNotFoundError` | `pip install -r skills/excel2md/requirements.txt` を実行 |
+| `NOT READY: LibreOffice was not found` | LibreOffice 未インストール、または `PATH` に無い。`EXCEL2MD_SOFFICE` を設定 |
+| `NOT READY: n Python package(s) missing` | preflight が出力したコマンドを実行。正しいインタプリタが対象になります |
+| pip が `Permission denied` で失敗 | インタプリタがシステム領域にあります。`--user` を付けるか仮想環境を使用 |
+| pip が `externally-managed-environment` で失敗 | ディストリビューション管理下の Python です。仮想環境を使用 |
+| インストール済みなのに `ModuleNotFoundError` | 別のインタプリタに入っています。preflight が出力したパスと照合してください |
 | あるシートで PDF 表枠が作られない | 問題ありません。そのシートはテキストと PNG のみで構造を判断します |
 | 非表示シートが出力されない | 仕様です。非表示シートはスキップされます |
 

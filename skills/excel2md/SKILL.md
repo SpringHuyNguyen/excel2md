@@ -35,10 +35,46 @@ Therefore the sources have strictly separated roles:
 
 ## Workflow
 
+0. **Preflight — check dependencies, install the Python ones if needed**:
+   Set `SKILL_DIR` to the absolute path of this skill's directory first. When the skill is installed as a plugin, that is `${CLAUDE_PLUGIN_ROOT}/skills/excel2md`.
+
+    ```bash
+    python "<SKILL_DIR>\preflight.py"
+    ```
+
+    Branch on the exit code:
+    - **0** — everything is present. Continue to Step 1. Say nothing about preflight in the final report.
+    - **2** — Python packages are missing, and this is fixable. Tell the user which packages are missing and that you are installing them, then run the exact command preflight printed:
+
+        ```bash
+        "<PYTHON_EXE>" -m pip install -r "<SKILL_DIR>\requirements.txt"
+        ```
+
+        `<PYTHON_EXE>` is the interpreter path preflight printed on its first line — use that one, never a bare `python`, because the user may have several Pythons installed. Re-run `preflight.py` afterwards and continue only if it now exits 0.
+    - **3** — LibreOffice is missing. NOT fixable from here. Show the user the instructions preflight printed and STOP. Do not attempt to install LibreOffice, and do not try to run the pipeline without it.
+    - **4** — Python is too old. Show what preflight printed and STOP.
+
+    **If the `pip install` itself fails**, do not retry it and do not continue to Step 1. Report to the user, in this order:
+    1. the exact command that failed;
+    2. the last ~15 lines of pip's actual output, verbatim — not a paraphrase;
+    3. the interpreter path from preflight's first line, so they can see which Python was targeted;
+    4. the most likely cause, chosen from what the output actually says:
+        - `Permission denied` / `Could not install packages due to an OSError` → the interpreter is in a system location. Suggest re-running with `--user`, or using a virtual environment.
+        - network or TLS errors, `Could not find a version` → no index access. Suggest checking the connection, a proxy, or a corporate index.
+        - `externally-managed-environment` → a Linux distro Python. Suggest a virtual environment.
+        - build or wheel errors on `pymupdf` → no prebuilt wheel for this platform/Python. Suggest a supported Python version.
+    5. the manual fallback so they are never stuck:
+
+        ```bash
+        "<PYTHON_EXE>" -m pip install -r "<SKILL_DIR>\requirements.txt"
+        ```
+
+    Then STOP. Never guess whether the pipeline might work anyway.
+
 1. **Resolve Paths & Variables**:
     - The command MUST contain `--file <path>`. If it is missing, report `provide --file <path.xlsx>` and STOP. If the path does not exist or is not an `.xlsx` file, report that and STOP.
     - Strip the standalone flags from the end of the argument list: if `-vision-all` is present set `VISION_ALL=true`, if `-test` is present set `KEEP_ALL=true`. Remove both before parsing `output_folder_name`. They are NOT part of the folder name.
-    - Set `SKILL_DIR` to the absolute path of this skill's directory. When the skill is installed as a plugin, that is `${CLAUDE_PLUGIN_ROOT}/skills/excel2md`.
+    - `SKILL_DIR` is already set from Step 0.
     - Determine `OUTPUT_DIR`: the `output_folder_name` argument, as `./<output_folder_name>` in the current working directory, created if needed. If absent, `OUTPUT_DIR` is the current working directory.
     - Set `EXCEL_FILE` to the `--file` value.
     - Set `EXCEL_BASENAME` to the Excel filename without extension.
