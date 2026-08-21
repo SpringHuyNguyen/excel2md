@@ -3,8 +3,7 @@
   "name": "excel2md",
   "description": "Excel design document to Markdown converter for Claude Code.",
   "owner": {
-    "name": "vnext",
-    "email": "erp_ai_001@vnext.vn"
+    "name": "HUYNX"
   },
   "plugins": [
     {
