@@ -50,6 +50,32 @@ SOFFICE_CANDIDATES_OTHER = [
 ]
 
 
+def install_command() -> str | None:
+    """The package-manager command that installs LibreOffice here, if there is one."""
+    if sys.platform == "win32":
+        if shutil.which("winget"):
+            return (
+                "winget install --id TheDocumentFoundation.LibreOffice -e "
+                "--accept-package-agreements --accept-source-agreements"
+            )
+        return None
+
+    if sys.platform == "darwin":
+        if shutil.which("brew"):
+            return "brew install --cask libreoffice"
+        return None
+
+    for manager, command in (
+        ("apt-get", "sudo apt-get install -y libreoffice"),
+        ("dnf", "sudo dnf install -y libreoffice"),
+        ("pacman", "sudo pacman -S --noconfirm libreoffice-fresh"),
+        ("zypper", "sudo zypper install -y libreoffice"),
+    ):
+        if shutil.which(manager):
+            return command
+    return None
+
+
 def find_soffice() -> str | None:
     """Same resolution order as xlsx_to_pdf.py, but never exits."""
     override = os.environ.get("EXCEL2MD_SOFFICE")
@@ -111,8 +137,16 @@ def main() -> int:
             print("NOT READY: LibreOffice was not found.")
             print("  excel2md uses it headlessly to export each sheet to PDF. It is a native")
             print("  application, so it cannot be installed with pip.")
-            print("  1. Install it from https://www.libreoffice.org/download/")
-            print("  2. If `soffice` is still not on PATH, point EXCEL2MD_SOFFICE at it:")
+            command = install_command()
+            if command:
+                # Machine-readable: the caller keys on this prefix to offer the install.
+                print(f"SUGGESTED_INSTALL: {command}")
+                print("  A package manager is available. The command above installs LibreOffice")
+                print("  (roughly 350 MB) system-wide and will ask for administrator rights.")
+            else:
+                print("  No supported package manager was found on this machine.")
+            print("  Manual alternative: download from https://www.libreoffice.org/download/")
+            print("  If `soffice` is still not on PATH afterwards, point EXCEL2MD_SOFFICE at it:")
             print(r'       Windows  set EXCEL2MD_SOFFICE=C:\Program Files\LibreOffice\program\soffice.exe')
             print("       macOS    export EXCEL2MD_SOFFICE=/Applications/LibreOffice.app/Contents/MacOS/soffice")
             print("       Linux    export EXCEL2MD_SOFFICE=/usr/bin/soffice")

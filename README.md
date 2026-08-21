@@ -49,14 +49,27 @@ linked from the Markdown.
 /plugin install excel2md@excel2md
 ```
 
-**Install LibreOffice** from <https://www.libreoffice.org/download/>. This is the one step you
-must do yourself — it is a native application, not a Python package.
+**Dependencies install themselves.** Installing a plugin never runs `pip` or a package manager,
+so the skill checks what it needs before every run and offers to fill the gaps.
 
-**The Python packages install themselves.** Installing a plugin never runs `pip`, so the skill
-checks its own dependencies before every run. The first time you use it, it reports which
-packages are missing and installs them with the interpreter it is actually running under (Claude
-Code will ask you to approve that command). If the install fails, it stops and shows you the
-command, pip's real output, and the likely cause — it never runs the pipeline half-equipped.
+**LibreOffice.** If it is missing, the skill proposes the right command for your machine —
+`winget` on Windows, `brew` on macOS, `apt-get` / `dnf` / `pacman` / `zypper` on Linux — and asks
+before running it. This is a system-wide install of roughly 350 MB that prompts for
+administrator rights, so it never happens unprompted. Decline and you get the manual download
+link instead. If no package manager is available, you get the link straight away.
+
+If the administrator prompt cannot be answered from the terminal, run the command yourself in an
+elevated shell and re-run the skill:
+
+```
+winget install --id TheDocumentFoundation.LibreOffice -e --accept-package-agreements --accept-source-agreements
+```
+
+**Python packages.** These install without a confirmation step, because they go into the
+interpreter you are already running rather than changing the system. The skill reports which
+packages are missing and installs them with that exact interpreter — Claude Code still asks you
+to approve the command. If any install fails, the skill stops and shows you the command, the
+tool's real output, and the likely cause; it never runs the pipeline half-equipped.
 
 To install them ahead of time instead:
 
@@ -119,7 +132,10 @@ prints the exact command to fix it.
 
 | Symptom | Cause |
 | --- | --- |
-| `NOT READY: LibreOffice was not found` | LibreOffice is not installed, or not on `PATH`. Set `EXCEL2MD_SOFFICE` |
+| `NOT READY: LibreOffice was not found` | Not installed, or not on `PATH`. Accept the offered install, or set `EXCEL2MD_SOFFICE` |
+| Install command hangs, or fails with an elevation error | The administrator prompt could not be answered from the terminal. Run it in an elevated shell |
+| `No package found matching input criteria` | Stale package index. Run `winget source update`, or download manually |
+| Still `NOT READY` after a successful install | LibreOffice landed somewhere non-standard. Set `EXCEL2MD_SOFFICE` |
 | `NOT READY: n Python package(s) missing` | Run the command preflight prints. It targets the right interpreter |
 | pip fails with `Permission denied` | The interpreter lives in a system location. Retry with `--user`, or use a virtual environment |
 | pip fails with `externally-managed-environment` | A distro-managed Python. Use a virtual environment |
@@ -181,15 +197,28 @@ Markdown からリンクされます。
 /plugin install excel2md@excel2md
 ```
 
-**LibreOffice** は <https://www.libreoffice.org/download/> から導入してください。手動で行う必要が
-あるのはこの 1 ステップだけです。Python パッケージではなくネイティブアプリのためです。
+**依存関係は自動でインストールされます。** プラグインのインストール時に `pip` やパッケージ
+マネージャーが実行されることはないため、スキル側が実行のたびに必要なものを確認し、不足分の
+導入を提案します。
 
-**Python パッケージは自動でインストールされます。** プラグインのインストール時に `pip` が実行される
-ことはないため、スキル側が実行のたびに自身の依存関係を確認します。初回利用時に不足している
-パッケージを報告し、実際に動作している Python インタプリタを対象にインストールします
-（そのコマンドの承認は Claude Code が求めます）。インストールが失敗した場合は処理を中断し、
-実行したコマンド、pip の実際の出力、想定される原因を提示します。依存関係が揃わないまま
-パイプラインを実行することはありません。
+**LibreOffice。** 見つからない場合、環境に応じたコマンドを提示します（Windows は `winget`、
+macOS は `brew`、Linux は `apt-get` / `dnf` / `pacman` / `zypper`）。実行前に必ず確認を求めます。
+約 350 MB のシステム全体へのインストールであり管理者権限を要求するため、無断で実行されることは
+ありません。断った場合は手動ダウンロードのリンクを提示します。対応するパッケージマネージャーが
+無い場合も同様にリンクを提示します。
+
+管理者権限のプロンプトにターミナルから応答できない場合は、昇格したシェルで次を実行してから
+スキルを再実行してください。
+
+```
+winget install --id TheDocumentFoundation.LibreOffice -e --accept-package-agreements --accept-source-agreements
+```
+
+**Python パッケージ。** こちらは確認なしでインストールされます。システムを変更するのではなく、
+すでに動作しているインタプリタに導入されるためです。不足しているパッケージを報告し、その
+インタプリタを対象にインストールします（コマンドの承認は Claude Code が求めます）。
+インストールが失敗した場合は処理を中断し、実行したコマンド、ツールの実際の出力、想定される
+原因を提示します。依存関係が揃わないままパイプラインを実行することはありません。
 
 事前にインストールしておく場合:
 
@@ -252,7 +281,10 @@ out/
 
 | 症状 | 原因 |
 | --- | --- |
-| `NOT READY: LibreOffice was not found` | LibreOffice 未インストール、または `PATH` に無い。`EXCEL2MD_SOFFICE` を設定 |
+| `NOT READY: LibreOffice was not found` | 未インストール、または `PATH` に無い。提示されたインストールを承認するか `EXCEL2MD_SOFFICE` を設定 |
+| インストールコマンドが停止する、権限エラーで失敗する | 管理者プロンプトにターミナルから応答できていません。昇格したシェルで実行してください |
+| `No package found matching input criteria` | パッケージ索引が古い状態です。`winget source update` を実行するか手動でダウンロード |
+| インストール成功後も `NOT READY` | LibreOffice が非標準の場所にあります。`EXCEL2MD_SOFFICE` を設定 |
 | `NOT READY: n Python package(s) missing` | preflight が出力したコマンドを実行。正しいインタプリタが対象になります |
 | pip が `Permission denied` で失敗 | インタプリタがシステム領域にあります。`--user` を付けるか仮想環境を使用 |
 | pip が `externally-managed-environment` で失敗 | ディストリビューション管理下の Python です。仮想環境を使用 |

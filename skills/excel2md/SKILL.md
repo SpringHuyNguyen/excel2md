@@ -51,7 +51,7 @@ Therefore the sources have strictly separated roles:
         ```
 
         `<PYTHON_EXE>` is the interpreter path preflight printed on its first line — use that one, never a bare `python`, because the user may have several Pythons installed. Re-run `preflight.py` afterwards and continue only if it now exits 0.
-    - **3** — LibreOffice is missing. NOT fixable from here. Show the user the instructions preflight printed and STOP. Do not attempt to install LibreOffice, and do not try to run the pipeline without it.
+    - **3** — LibreOffice is missing. Handle it as described under _Installing LibreOffice_ below. Never run the pipeline without it.
     - **4** — Python is too old. Show what preflight printed and STOP.
 
     **If the `pip install` itself fails**, do not retry it and do not continue to Step 1. Report to the user, in this order:
@@ -70,6 +70,18 @@ Therefore the sources have strictly separated roles:
         ```
 
     Then STOP. Never guess whether the pipeline might work anyway.
+
+    **Installing LibreOffice (exit code 3).** Unlike the Python packages, this is a system-wide install of roughly 350 MB that needs administrator rights, so ASK before running it — do not install it unprompted.
+
+    - If preflight printed a line starting `SUGGESTED_INSTALL: `, take the rest of that line as the command. Tell the user what it will do — the package manager it uses, the ~350 MB size, and that it will prompt for administrator rights — then ask whether to run it. On a yes, run exactly that command. On a no, show the manual download link preflight printed and STOP.
+    - If preflight printed no `SUGGESTED_INSTALL:` line, there is no package manager to use. Show the manual instructions preflight printed and STOP.
+
+    After the install command finishes, re-run `preflight.py` as a NEW process. It re-detects LibreOffice at its default location, so a `PATH` that has not refreshed in the current shell does not matter. Continue only if it now exits 0.
+
+    **If the install command fails**, apply the same reporting discipline as for pip — command, verbatim output, likely cause, manual fallback, then STOP. The causes worth naming here:
+    - the command hangs, or fails with an elevation or `0x800...` error → the administrator prompt could not be answered from this shell. Ask the user to run the command themselves in an elevated terminal, then re-run the skill.
+    - `No package found matching input criteria` → the package manager's source index is stale. Suggest `winget source update` (or the equivalent) or the manual download.
+    - preflight still exits 3 after a successful install → LibreOffice landed somewhere non-standard. Ask the user to set `EXCEL2MD_SOFFICE` to the `soffice` path.
 
 1. **Resolve Paths & Variables**:
     - The command MUST contain `--file <path>`. If it is missing, report `provide --file <path.xlsx>` and STOP. If the path does not exist or is not an `.xlsx` file, report that and STOP.
