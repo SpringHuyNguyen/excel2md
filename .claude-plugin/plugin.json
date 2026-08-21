@@ -1,0 +1,18 @@
+{
+  "name": "excel2md",
+  "description": "Convert a local Excel design document (Japanese, Vietnamese, English or any mix) into one Markdown file per sheet. Sub-agents read rendered sheet images to rebuild shape-based diagrams and place embedded pictures.",
+  "version": "1.0.0",
+  "author": {
+    "name": "vnext",
+    "email": "erp_ai_001@vnext.vn"
+  },
+  "keywords": [
+    "excel",
+    "xlsx",
+    "markdown",
+    "design-document",
+    "sap",
+    "japanese",
+    "vietnamese"
+  ]
+}

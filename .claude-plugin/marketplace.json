@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "excel2md",
+  "description": "Excel design document to Markdown converter for Claude Code.",
+  "owner": {
+    "name": "vnext",
+    "email": "erp_ai_001@vnext.vn"
+  },
+  "plugins": [
+    {
+      "name": "excel2md",
+      "source": "./",
+      "category": "productivity",
+      "description": "Convert a local Excel design document (Japanese, Vietnamese, English or any mix) into one Markdown file per sheet."
+    }
+  ]
+}

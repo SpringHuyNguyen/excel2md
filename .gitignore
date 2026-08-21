@@ -1,0 +1,13 @@
+# Python bytecode / test cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Never ship credentials, even by accident.
+.env
+.token_cache.bin
+.token_cache.json
+.token_cache.bin.lockfile
+
+# Excel lock files
+~$*.xlsx

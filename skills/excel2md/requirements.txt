@@ -1,0 +1,11 @@
+# Runtime dependencies for the excel2md skill.
+#   pip install -r requirements.txt
+#
+# LibreOffice is also required, but it is a native application, not a Python
+# package. Install it separately from https://www.libreoffice.org/download/
+# and make sure `soffice` is on PATH, or set EXCEL2MD_SOFFICE to its full path.
+
+openpyxl>=3.1
+pypdf>=5.0
+pymupdf>=1.24
+pymupdf4llm>=0.0.17
